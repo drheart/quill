@@ -140,7 +140,7 @@ class SqlQuerySpec extends Spec {
           qr1.groupBy(t => t.i).map(t => t._1)
         }
         testContext.run(q).string mustEqual
-          "SELECT t.i FROM TestEntity t GROUP BY t.i"
+          "SELECT t.* FROM (SELECT t.i FROM TestEntity t GROUP BY t.i) t"
       }
       "nested" in {
         val q = quote {
@@ -162,7 +162,7 @@ class SqlQuerySpec extends Spec {
           qr1.groupBy(t => (t.i, t.l)).map(t => t._1)
         }
         testContext.run(q).string mustEqual
-          "SELECT t.i, t.l FROM TestEntity t GROUP BY t.i, t.l"
+          "SELECT t._1, t._2 FROM (SELECT t.i _1, t.l _2 FROM TestEntity t GROUP BY t.i, t.l) t"
       }
       "aggregated" - {
         "simple" in {
@@ -171,7 +171,8 @@ class SqlQuerySpec extends Spec {
               case (i, entities) => (i, entities.size)
             }
           }
-          testContext.run(q).string mustEqual "SELECT t.i, COUNT(*) FROM TestEntity t GROUP BY t.i"
+          testContext.run(q).string mustEqual
+            "SELECT t._1, t._2 FROM (SELECT t.i _1, COUNT(*) _2 FROM TestEntity t GROUP BY t.i) t"
         }
         "mapped" in {
           val q = quote {
@@ -179,7 +180,8 @@ class SqlQuerySpec extends Spec {
               case (i, entities) => (i, entities.map(_.l).max)
             }
           }
-          testContext.run(q).string mustEqual "SELECT t.i, MAX(t.l) FROM TestEntity t GROUP BY t.i"
+          testContext.run(q).string mustEqual
+            "SELECT t._1, t._2 FROM (SELECT t.i _1, MAX(t.l) _2 FROM TestEntity t GROUP BY t.i) t"
         }
       }
       "invalid groupby criteria" in {

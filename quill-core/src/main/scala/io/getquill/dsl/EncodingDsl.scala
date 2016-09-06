@@ -1,20 +1,28 @@
 package io.getquill.dsl
 
 import scala.language.higherKinds
-import io.getquill.WrappedType
 import scala.annotation.compileTimeOnly
 import io.getquill.quotation.NonQuotedException
 import scala.language.experimental.macros
 
-trait EncodingDsl {
+trait LowPriorityImplicits {
+  this: EncodingDsl =>
+
+  implicit def materializeEncoder[T]: Encoder[T] = macro EncodingDslMacro.materializeEncoder[T]
+  implicit def materializeDecoder[T]: Decoder[T] = macro EncodingDslMacro.materializeDecoder[T]
+}
+
+trait EncodingDsl extends LowPriorityImplicits {
   this: CoreDsl =>
 
   type PrepareRow
   type ResultRow
 
-  type Decoder[T] = io.getquill.context.Decoder[ResultRow, T]
+  trait Decoder[T] {
+    def apply(index: Int, row: ResultRow): T
+  }
 
-  trait Encoder[-T] {
+  trait Encoder[T] {
     def apply(index: Int, value: T, row: PrepareRow): PrepareRow
   }
 
@@ -28,7 +36,7 @@ trait EncodingDsl {
 
   /* ************************************************************************** */
 
-  def lift[T](v: T): T = macro macroz.DslMacro.lift[T]
+  def lift[T](v: T): T = macro EncodingDslMacro.lift[T]
 
   @compileTimeOnly(NonQuotedException.message)
   def liftScalar[T](v: T)(implicit e: Encoder[T]): T = NonQuotedException()
@@ -38,7 +46,7 @@ trait EncodingDsl {
 
   /* ************************************************************************** */
 
-  def liftQuery[U[_] <: Traversable[_], T](v: U[T]): Query[T] = macro macroz.DslMacro.liftQuery[T]
+  def liftQuery[U[_] <: Traversable[_], T](v: U[T]): Query[T] = macro EncodingDslMacro.liftQuery[T]
 
   @compileTimeOnly(NonQuotedException.message)
   def liftQueryScalar[U[_] <: Traversable[_], T](v: U[T])(implicit e: Encoder[T]): Query[T] = NonQuotedException()
@@ -62,7 +70,4 @@ trait EncodingDsl {
       def apply(index: Int, value: I, row: PrepareRow) =
         encoder(index, mapped.f(value), row)
     }
-
-  implicit def wrappedTypeDecoder[T <: WrappedType] =
-    MappedEncoding[T, T#Type](_.value)
 }

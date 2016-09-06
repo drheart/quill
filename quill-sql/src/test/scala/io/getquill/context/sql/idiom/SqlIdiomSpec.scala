@@ -37,7 +37,7 @@ class SqlIdiomSpec extends Spec {
             qr1.distinct
           }
           testContext.run(q).string mustEqual
-            "SELECT DISTINCT x.* FROM TestEntity x"
+            "SELECT x.s, x.i, x.l, x.o FROM (SELECT DISTINCT x.s, x.i, x.l, x.o FROM TestEntity x) x"
         }
 
         "distinct single" in {
@@ -156,7 +156,7 @@ class SqlIdiomSpec extends Spec {
             }
           }
           testContext.run(q).string mustEqual
-            "SELECT t.i, COUNT(*) FROM TestEntity t GROUP BY t.i"
+            "SELECT t._1, t._2 FROM (SELECT t.i _1, COUNT(*) _2 FROM TestEntity t GROUP BY t.i) t"
         }
         "nested" in {
           val q = quote {
@@ -705,6 +705,12 @@ class SqlIdiomSpec extends Spec {
         }
         testContext.run(q).string mustEqual
           "SELECT t.s FROM TestEntity t"
+      }
+      "nested" in {
+        case class A(s: String) extends Embedded
+        case class B(a: A)
+        testContext.run(query[B]).string mustEqual
+          "SELECT x.s FROM B x"
       }
       "isEmpty" - {
         "query" in {

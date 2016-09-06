@@ -228,11 +228,16 @@ trait SqlIdiom extends Idiom {
 
   implicit def propertyTokenizer(implicit valueTokenizer: Tokenizer[Value], identTokenizer: Tokenizer[Ident], strategy: NamingStrategy): Tokenizer[Property] =
     Tokenizer[Property] {
-      case Property(ident, "isEmpty")      => stmt"${ident.token} IS NULL"
-      case Property(ident, "nonEmpty")     => stmt"${ident.token} IS NOT NULL"
-      case Property(ident, "isDefined")    => stmt"${ident.token} IS NOT NULL"
-      case Property(Property(ident, a), b) => stmt"${ident.token}.${a.token}${b.token}"
-      case Property(ast, name)             => stmt"${scopedTokenizer(ast)}.${strategy.column(name).token}"
+      case Property(ident, "isEmpty")   => stmt"${ident.token} IS NULL"
+      case Property(ident, "nonEmpty")  => stmt"${ident.token} IS NOT NULL"
+      case Property(ident, "isDefined") => stmt"${ident.token} IS NOT NULL"
+      case Property(ast, name) =>
+        def unnest(ast: Ast): Ast =
+          ast match {
+            case Property(a, b) => unnest(a)
+            case a              => a
+          }
+        stmt"${scopedTokenizer(unnest(ast))}.${strategy.column(name).token}"
     }
 
   implicit def valueTokenizer(implicit strategy: NamingStrategy): Tokenizer[Value] = Tokenizer[Value] {
