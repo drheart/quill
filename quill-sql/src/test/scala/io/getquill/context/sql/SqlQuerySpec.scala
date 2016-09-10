@@ -10,7 +10,7 @@ class SqlQuerySpec extends Spec {
 
   "transforms the ast into a flatten sql-like structure" - {
 
-    "join query" in {
+    "inner join query" in {
       val q = quote {
         for {
           a <- qr1
@@ -18,6 +18,14 @@ class SqlQuerySpec extends Spec {
         } yield {
           (a.i, b.i)
         }
+      }
+      testContext.run(q).string mustEqual
+        "SELECT a.i, b.i FROM TestEntity a, TestEntity2 b WHERE (a.s IS NOT NULL) AND (b.i > a.i)"
+    }
+    
+    "outer join query" in {
+      val q = quote {
+        qr1.leftJoin(qr2).on((a, b) => a.s != null && b.i > a.i)
       }
       testContext.run(q).string mustEqual
         "SELECT a.i, b.i FROM TestEntity a, TestEntity2 b WHERE (a.s IS NOT NULL) AND (b.i > a.i)"

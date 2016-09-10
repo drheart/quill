@@ -893,13 +893,13 @@ trait UUIDEncodingExample {
 }
 ```
 
-Wrapped types
--------------
+`AnyVal`
+--------
 
-Quill also supports encoding of "wrapped types". Just extend the `WrappedValue` trait and Quill will automatically encode the underlying primitive type.
+Quill automatically encodes `AnyVal`s:
 
 ```scala
-case class UserId(value: Int) extends AnyVal with WrappedValue[Int]
+case class UserId(value: Int) extends AnyVal
 case class User(id: UserId, name: String)
 
 val q = quote {
