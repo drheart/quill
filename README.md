@@ -970,6 +970,7 @@ trait MySchema {
 }
 
 case class MyDao(c: MyContext) extends MySchema {
+  import c._
 
   def allPeople = 
     c.run(people)
